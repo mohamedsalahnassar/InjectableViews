@@ -13,11 +13,11 @@ struct InjectableViewsPlugin: CompilerPlugin {
 }
 
 /// Core macro implementation: generates stored properties, init, and accessors.
-public struct InjectableViewMacro: MemberMacro, AccessorMacro {
+public struct InjectableViewMacro: PeerMacro, AccessorMacro {
     // MARK: MemberMacro
     public static func expansion(
         of attribute: AttributeSyntax,
-        providingMembersOf declaration: some DeclSyntaxProtocol,
+        providingPeersOf declaration: some DeclSyntaxProtocol,
         in context: some MacroExpansionContext
     ) throws -> [DeclSyntax] {
         guard let varDecl = declaration.as(VariableDeclSyntax.self),
@@ -38,9 +38,9 @@ public struct InjectableViewMacro: MemberMacro, AccessorMacro {
         let backing = "_\(name)_override"
         let defaultVal = initExpr.description.trimmingCharacters(in: .whitespacesAndNewlines)
         return [
-            "@State private var \(raw: backing): AnyView? = nil",
-            "private let _\(raw: name)_default: ()->AnyView = { AnyView(\(raw: defaultVal)) }",
-            "public init(wrappedValue defaultBuilder: @escaping ()->some View) { self._\(raw: name)_default = { AnyView(defaultBuilder()) } }"
+            "static var \(raw: backing): AnyView? = nil",
+            "private let _\(raw: name)_default: () -> AnyView = { AnyView(\(raw: defaultVal)) }",
+            "public init(wrappedValue defaultBuilder: @escaping ()-> some View) { self._\(raw: name)_default = { AnyView(defaultBuilder()) } }"
         ]
     }
 

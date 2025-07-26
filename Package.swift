@@ -1,4 +1,5 @@
-// swift-tools-version:5.9
+// swift-tools-version: 5.9
+
 import PackageDescription
 import CompilerPluginSupport
 
@@ -19,7 +20,9 @@ let package = Package(
         .package(url: "https://github.com/apple/swift-syntax.git", from: "509.0.0"),
     ],
     targets: [
-        // 1) Your macro implementation
+        // Targets are the basic building blocks of a package, defining a module or a test suite.
+        // Targets can depend on other targets in this package and products from dependencies.
+        // Macro implementation that performs the source transformation of a macro.
         .macro(
             name: "InjectableViewsMacros",
             dependencies: [
@@ -29,7 +32,7 @@ let package = Package(
             ]
         ),
 
-        // 2) Runtime helpers & extensions (must live under Sources/InjectableViews/)
+        // Library that exposes a macro as part of its API, which is used in client programs.
         .target(
             name: "InjectableViews",
             dependencies: ["InjectableViewsMacros"]
@@ -39,6 +42,6 @@ let package = Package(
         .executableTarget(
             name: "InjectableViewsDemo",
             dependencies: ["InjectableViews"]
-        ),
+        )
     ]
 )

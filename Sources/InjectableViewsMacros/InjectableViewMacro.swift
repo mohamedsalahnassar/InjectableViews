@@ -1,50 +1,26 @@
+//
+//  InjectableViewMacro.swift
+//  InjectableViews
+//
+//  Created by Mohamed Nassar on 27/07/2025.
+//
+
 import SwiftSyntax
-import SwiftSyntaxMacros
 import SwiftSyntaxBuilder
+import SwiftSyntaxMacros
 import SwiftDiagnostics
-import SwiftCompilerPlugin
 
-
-@main
-struct InjectableViewsPlugin: CompilerPlugin {
-    let providingMacros: [Macro.Type] = [
-        InjectableViewMacro.self,
-    ]
-}
-
-/// Core macro implementation: generates stored properties, init, and accessors.
-public struct InjectableViewMacro: PeerMacro, AccessorMacro {
-    // MARK: MemberMacro
-    public static func expansion(
-        of attribute: AttributeSyntax,
-        providingPeersOf declaration: some DeclSyntaxProtocol,
-        in context: some MacroExpansionContext
-    ) throws -> [DeclSyntax] {
-        guard let varDecl = declaration.as(VariableDeclSyntax.self),
-              varDecl.bindings.count == 1,
-              let binding = varDecl.bindings.first
-        else {
-            let diag = Diagnostic(node: Syntax(declaration), message: InjectableViewMacroError.notSingleVariable)
-            throw DiagnosticsError(diagnostics: [diag])
-        }
-        guard let name = binding.pattern.as(IdentifierPatternSyntax.self)?.identifier.text else {
-            let diag = Diagnostic(node: Syntax(binding), message: InjectableViewMacroError.notSingleVariable)
-            throw DiagnosticsError(diagnostics: [diag])
-        }
-        guard let initExpr = binding.initializer?.value else {
-            let diag = Diagnostic(node: Syntax(binding), message: InjectableViewMacroError.missingInitializer)
-            throw DiagnosticsError(diagnostics: [diag])
-        }
-        let backing = "_\(name)_override"
-        let defaultVal = initExpr.description.trimmingCharacters(in: .whitespacesAndNewlines)
-        return [
-            "static var \(raw: backing): AnyView? = nil",
-            "private let _\(raw: name)_default: () -> AnyView = { AnyView(\(raw: defaultVal)) }",
-            "public init(wrappedValue defaultBuilder: @escaping ()-> some View) { self._\(raw: name)_default = { AnyView(defaultBuilder()) } }"
-        ]
-    }
-
-    // MARK: AccessorMacro
+/// A macro that synthesizes a computed property accessor for SwiftUI view injection.
+///
+/// The `@InjectableView` macro adds a custom `get` accessor to properties, allowing views to be overridden at runtime
+/// (using an internal `_viewOverrides` dictionary) or defaulting to a builder method following the `<propertyName>Builder` convention.
+///
+/// Usage:
+///   Attach `@InjectableView` to a SwiftUI view property in a type that supports injection.
+///   The macro generates logic to fetch an override if present, or build the default view otherwise.
+///
+/// - Note: Emits a compile-time error if used on anything other than a single variable declaration.
+public struct InjectableViewMacro: AccessorMacro {
     public static func expansion(
         of attribute: AttributeSyntax,
         providingAccessorsOf declaration: some DeclSyntaxProtocol,
@@ -52,38 +28,42 @@ public struct InjectableViewMacro: PeerMacro, AccessorMacro {
     ) throws -> [AccessorDeclSyntax] {
         guard let varDecl = declaration.as(VariableDeclSyntax.self),
               let binding = varDecl.bindings.first,
-              let name = binding.pattern.as(IdentifierPatternSyntax.self)?.identifier.text
-        else {
-            let diag = Diagnostic(node: Syntax(declaration), message: InjectableViewMacroError.notSingleVariable)
-            throw DiagnosticsError(diagnostics: [diag])
+              let name = binding.pattern.as(IdentifierPatternSyntax.self)?.identifier.text else {
+            // Emit a macro diagnostic: only usable with variable declarations
+            context.diagnose(
+                Diagnostic(
+                    node: declaration,
+                    message: InjectableViewMacroError.notSingleVariable
+                )
+            )
+            return []
         }
-        let backing = "_\(name)_override"
-        let defaultName = "_\(name)_default"
-        return [
-            AccessorDeclSyntax("""
-get {
-    if let o = \(raw: backing) { return o }
-    return \(raw: defaultName)()
-}
-"""),
-            AccessorDeclSyntax("""
-set { \(raw: backing) = newValue }
-""")
-        ]
+
+        // Derive expected builder method name by convention: <propertyName>Builder
+        let builderName = "\(name)Builder"
+
+        // Compose the override + builder call logic
+        // This assumes the builder exists; if not, the user gets a Swift compile error
+        let computedBody = """
+        get {
+            if let overridden = _viewOverrides["\(name)"] { return AnyView(overridden) }
+            return AnyView(\(builderName)())
+        }
+        """
+
+        let accessor = try AccessorDeclSyntax(stringLiteral: computedBody)
+        return [accessor]
     }
 }
 
-/// Diagnostic errors for the macro.
+/// Macro errors for developer feedback
 enum InjectableViewMacroError: DiagnosticMessage {
     case notSingleVariable
-    case missingInitializer
 
     var message: String {
         switch self {
         case .notSingleVariable:
-            return "@InjectableView must attach to exactly one variable declaration."
-        case .missingInitializer:
-            return "@InjectableView requires an initializer closure (e.g. `= { ... }`)."
+            return "@InjectableView must attach to a variable declaration."
         }
     }
 
@@ -93,6 +73,3 @@ enum InjectableViewMacroError: DiagnosticMessage {
     }
 }
 
-fileprivate extension String {
-    func trimmed() -> String { trimmingCharacters(in: .whitespacesAndNewlines) }
-}

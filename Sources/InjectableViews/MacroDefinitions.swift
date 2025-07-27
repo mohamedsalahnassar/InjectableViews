@@ -5,6 +5,14 @@
 //  Created by Mohamed Nassar on 26/07/2025.
 //
 
+import SwiftUI
+
+/// Protocol for builder methods required by `@InjectableView` properties.
+/// You must implement a method or closure conforming to this protocol for each injectable property.
+public protocol InjectableViewBuilding {
+    associatedtype Content: View
+    func build() -> Content
+}
 
 /// Marks a type (typically a container view or parent view) as injectable for the InjectableViews system.
 ///
@@ -30,17 +38,22 @@ public macro InjectableContainer() = #externalMacro(
 /// Use this macro to enable injection or override of the specified view at runtime or in tests.
 ///
 /// - Parameter key: An optional string to uniquely identify the injectable view. If omitted, the property name is used.
+/// - Requirements: The property type must conform to `View`. For each injectable property, you must provide a builder method or closure named `<propertyName>Builder` that returns the correct type (matching the property type).
 ///
 /// Example:
 /// ```swift
 /// @InjectableView
 /// var child: ChildView
+///
+/// private func childBuilder() -> ChildView { ... }
 /// ```
 ///
 /// With a custom key:
 /// ```swift
 /// @InjectableView("customKey")
-/// var anotherChild: ChildView
+/// var anotherChild: SomeView
+///
+/// private func anotherChildBuilder() -> SomeView { ... }
 /// ```
 @attached(accessor)
 public macro InjectableView(_ key: String? = nil) = #externalMacro(

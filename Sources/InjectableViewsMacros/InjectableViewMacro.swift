@@ -15,6 +15,9 @@ import SwiftDiagnostics
 /// The `@InjectableView` macro adds a custom `get` accessor to properties, allowing views to be overridden at runtime
 /// (using an internal `_viewOverrides` dictionary) or defaulting to a builder method following the `<propertyName>Builder` convention.
 ///
+/// The generated accessor always returns `some View`, wrapping builder results in `AnyView` to hide type erasure,
+/// and returning override closures' results directly (which are expected to be `AnyView`).
+///
 /// Usage:
 ///   Attach `@InjectableView` to a SwiftUI view property in a type that supports injection.
 ///   The macro generates logic to fetch an override if present, or build the default view otherwise.
@@ -26,31 +29,42 @@ public struct InjectableViewMacro: AccessorMacro {
         providingAccessorsOf declaration: some DeclSyntaxProtocol,
         in context: some MacroExpansionContext
     ) throws -> [AccessorDeclSyntax] {
-        guard let varDecl = declaration.as(VariableDeclSyntax.self),
-              let binding = varDecl.bindings.first,
-              let name = binding.pattern.as(IdentifierPatternSyntax.self)?.identifier.text else {
-            // Emit a macro diagnostic: only usable with variable declarations
-            context.diagnose(
-                Diagnostic(
-                    node: declaration,
-                    message: InjectableViewMacroError.notSingleVariable
-                )
-            )
+        guard let varDecl = declaration.as(VariableDeclSyntax.self) else {
+            context.diagnose(Diagnostic(node: declaration, message: InjectableViewMacroError.notVariableDeclaration))
             return []
         }
-
+        
+        guard varDecl.bindings.count == 1,
+              let binding = varDecl.bindings.first,
+              let identifierPattern = binding.pattern.as(IdentifierPatternSyntax.self) else {
+            context.diagnose(Diagnostic(node: declaration, message: InjectableViewMacroError.notSingleVariable))
+            return []
+        }
+        
+        let propertyName = identifierPattern.identifier.text
+        
+        // Validate that the variable has a type annotation.
+        guard binding.typeAnnotation != nil else {
+            context.diagnose(Diagnostic(node: declaration, message: InjectableViewMacroError.missingTypeAnnotation))
+            return []
+        }
+        
         // Derive expected builder method name by convention: <propertyName>Builder
-        let builderName = "\(name)Builder"
-
-        // Compose the override + builder call logic
-        // This assumes the builder exists; if not, the user gets a Swift compile error
+        let builderName = "\(propertyName)Builder"
+        
+        // Compose the override + builder call logic.
+        // The accessor returns some View:
+        // - If an override closure exists in _viewOverrides, call it and return its result (AnyView).
+        // - Otherwise, call the builder and wrap its result in AnyView.
         let computedBody = """
         get {
-            if let overridden = _viewOverrides["\(name)"] { return AnyView(overridden) }
+            if let override = _viewOverrides["\(propertyName)"] {
+                return override()
+            }
             return AnyView(\(builderName)())
         }
         """
-
+        
         let accessor = try AccessorDeclSyntax(stringLiteral: computedBody)
         return [accessor]
     }
@@ -58,12 +72,18 @@ public struct InjectableViewMacro: AccessorMacro {
 
 /// Macro errors for developer feedback
 enum InjectableViewMacroError: DiagnosticMessage {
+    case notVariableDeclaration
     case notSingleVariable
+    case missingTypeAnnotation
 
     var message: String {
         switch self {
-        case .notSingleVariable:
+        case .notVariableDeclaration:
             return "@InjectableView must attach to a variable declaration."
+        case .notSingleVariable:
+            return "@InjectableView must be attached to a single variable declaration."
+        case .missingTypeAnnotation:
+            return "@InjectableView variable must have an explicit type annotation."
         }
     }
 
@@ -72,4 +92,3 @@ enum InjectableViewMacroError: DiagnosticMessage {
         MessageID(domain: "InjectableViewMacro", id: "\(self)")
     }
 }
-

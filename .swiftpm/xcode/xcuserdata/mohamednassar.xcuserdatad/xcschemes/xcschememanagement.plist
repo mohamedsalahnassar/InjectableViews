@@ -20,18 +20,5 @@
 			<integer>2</integer>
 		</dict>
 	</dict>
-	<key>SuppressBuildableAutocreation</key>
-	<dict>
-		<key>InjectableViews</key>
-		<dict>
-			<key>primary</key>
-			<true/>
-		</dict>
-		<key>InjectableViewsDemo</key>
-		<dict>
-			<key>primary</key>
-			<true/>
-		</dict>
-	</dict>
 </dict>
 </plist>

@@ -9,11 +9,16 @@ import SwiftUI
 
 @main
 struct ComposableSwiftUIApp: App {
+    @AppStorage("isLoggedIn") private var isLoggedIn: Bool = false
+
     var body: some Scene {
         WindowGroup {
-            VStack {
-                OriginalContentView()
-                ModifiedContentView()
+            NavigationView {
+                if isLoggedIn {
+                    ProfileScreen()
+                } else {
+                    LoginScreen()
+                }
             }
         }
     }

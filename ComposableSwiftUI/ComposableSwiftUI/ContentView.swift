@@ -12,8 +12,6 @@ import InjectableViews
 struct OriginalContentView: View {
     @State private var emailFieldValue: String = ""
     @State private var passwordFieldValue: String = ""
-    @InjectableView private var emailField: some View
-    @InjectableView private var passwordField: some View
 
     var body: some View {
         VStack(spacing: 16) {
@@ -25,13 +23,13 @@ struct OriginalContentView: View {
         .padding()
     }
 
-    @ViewBuilder
-    private func emailFieldBuilder() -> some View {
+    @InjectableView
+    @ViewBuilder private func emailFieldBuilder() -> some View {
         TextField("Email", text: $emailFieldValue)
     }
 
-    @ViewBuilder
-    private func passwordFieldBuilder() -> some View {
+    @InjectableView
+    @ViewBuilder private func passwordFieldBuilder() -> some View {
         SecureField("Password", text: $passwordFieldValue)
     }
 }
@@ -40,7 +38,7 @@ struct ModifiedContentView: View {
     @State private var confirmPasswordFieldValue: String = ""
     var body: some View {
         OriginalContentView()
-            .overrideView("passwordField") {
+            .overrideView(for: .passwordField) {
                 VStack {
                     SecureField("New Password", text: .constant(""))
                         .padding()
@@ -51,6 +49,17 @@ struct ModifiedContentView: View {
                     Text(confirmPasswordFieldValue)
                 }
             }
+//            .overrideView(for: .passwordField) {
+//                VStack {
+//                    SecureField("New Password", text: .constant(""))
+//                        .padding()
+//                        .background(Color.orange.opacity(0.3))
+//                    SecureField("Confirm Password", text: $confirmPasswordFieldValue)
+//                        .padding()
+//                        .background(Color.orange.opacity(0.3))
+//                    Text(confirmPasswordFieldValue)
+//                }
+//            }
     }
 }
 

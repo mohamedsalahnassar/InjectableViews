@@ -42,6 +42,17 @@ let package = Package(
         .executableTarget(
             name: "InjectableViewsDemo",
             dependencies: ["InjectableViews"]
+        ),
+
+        .testTarget(
+            name: "InjectableViewsTests",
+            dependencies: [
+                "InjectableViews",
+                "InjectableViewsMacros",
+                .product(name: "SwiftSyntaxMacrosTestSupport", package: "swift-syntax"),
+
+            ],
+            path: "Tests/InjectableViewsTests"
         )
     ]
 )

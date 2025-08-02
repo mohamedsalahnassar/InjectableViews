@@ -3,9 +3,6 @@ import InjectableViews
 
 @InjectableContainer
 struct BaseFormView: View {
-    @InjectableView var emailField: some View
-    @InjectableView var passwordField: some View
-
     var body: some View {
         VStack(spacing: 16) {
             emailField
@@ -14,10 +11,12 @@ struct BaseFormView: View {
         .padding()
     }
 
+    @InjectableView
     func emailFieldBuilder() -> some View {
         TextField("Email", text: .constant(""))
     }
 
+    @InjectableView
     func passwordFieldBuilder() -> some View {
         SecureField("Password", text: .constant(""))
     }
@@ -26,12 +25,12 @@ struct BaseFormView: View {
 struct CustomFormView: View {
     var body: some View {
         BaseFormView()
-            .overrideView("emailField") {
+            .overrideView(for: .emailField) {
                 TextField("Custom Email", text: .constant("override"))
                     .padding()
                     .background(Color.yellow.opacity(0.3))
             }
-            .overrideView("passwordField") {
+            .overrideView(for: .passwordField) {
                 SecureField("Custom Password", text: .constant("override"))
                     .padding()
                     .background(Color.orange.opacity(0.3))

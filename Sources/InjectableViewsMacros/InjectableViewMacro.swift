@@ -5,89 +5,196 @@
 //  Created by Mohamed Nassar on 27/07/2025.
 //
 
+//
+//  InjectableViewMacro.swift
+//  InjectableViews
+//
+//  Created by Mohamed Nassar on 27/07/2025.
+//
+
 import SwiftSyntax
 import SwiftSyntaxBuilder
 import SwiftSyntaxMacros
 import SwiftDiagnostics
 
-/// A macro that synthesizes a computed property accessor for SwiftUI view injection.
+/// A macro that generates computed properties for injectable views in SwiftUI.
 ///
-/// The `@InjectableView` macro adds a custom `get` accessor to properties, allowing views to be overridden at runtime
-/// (using an internal `_viewOverrides` dictionary) or defaulting to a builder method following the `<propertyName>Builder` convention.
+/// The `@InjectableView` macro is used to mark properties or functions as injectable views within a container.
+/// It generates a computed property that checks for runtime overrides using the `_overridesMaintainer` object.
+/// If no override exists, it falls back to the default builder method or property.
 ///
-/// The generated accessor always returns `some View`, wrapping builder results in `AnyView` to hide type erasure,
-/// and returning override closures' results directly (which are expected to be `AnyView`).
+/// ### Example Usage:
+/// ```swift
+/// @InjectableContainer
+/// struct ParentView: View {
+///     @InjectableView var childView: some View
 ///
-/// Usage:
-///   Attach `@InjectableView` to a SwiftUI view property in a type that supports injection.
-///   The macro generates logic to fetch an override if present, or build the default view otherwise.
+///     func childViewBuilder() -> some View {
+///         Text("Default Child View")
+///     }
+/// }
+/// ```
 ///
-/// - Note: Emits a compile-time error if used on anything other than a single variable declaration.
-public struct InjectableViewMacro: AccessorMacro {
+/// The macro generates the following computed property:
+/// ```swift
+/// var childView: some View {
+///     if let override = _overridesMaintainer.override(for: "childView") {
+///         return override
+///     }
+///     return childViewBuilder()
+/// }
+/// ```
+///
+/// - Note: The property or function name must end with "Builder" to be processed by this macro.
+/// - Author: Mohamed Nassar
+/// - Since: 27/07/2025
+public struct InjectableViewMacro: PeerMacro {
+    /// Expands the macro to generate computed properties for injectable views.
+    ///
+    /// - Parameters:
+    ///   - node: The attribute syntax node where the macro is applied.
+    ///   - declaration: The declaration to which the macro is attached (variable or function).
+    ///   - context: The macro expansion context.
+    /// - Returns: An array of `DeclSyntax` representing the generated computed properties.
+    /// - Throws: An error if the macro is applied to an unsupported declaration or if validation fails.
     public static func expansion(
-        of attribute: AttributeSyntax,
-        providingAccessorsOf declaration: some DeclSyntaxProtocol,
+        of node: SwiftSyntax.AttributeSyntax,
+        providingPeersOf declaration: some DeclSyntaxProtocol,
         in context: some MacroExpansionContext
-    ) throws -> [AccessorDeclSyntax] {
-        guard let varDecl = declaration.as(VariableDeclSyntax.self) else {
-            context.diagnose(Diagnostic(node: declaration, message: InjectableViewMacroError.notVariableDeclaration))
+    ) throws -> [DeclSyntax] {
+        // Handle variable declarations
+        if let varDecl = declaration.as(VariableDeclSyntax.self) {
+            return try processVariable(varDecl, in: context)
+        }
+
+        // Handle function declarations
+        if let funcDecl = declaration.as(FunctionDeclSyntax.self) {
+            return try processFunction(funcDecl, in: context)
+        }
+
+        // Emit an error for unsupported declaration types
+        context.diagnose(Diagnostic(node: declaration, message: InjectableViewMacroError.notVariableOrFunction))
+        return []
+    }
+
+    /// Processes a variable declaration to generate a computed property.
+    ///
+    /// - Parameters:
+    ///   - varDecl: The variable declaration syntax.
+    ///   - context: The macro expansion context.
+    /// - Returns: An array of `DeclSyntax` representing the generated computed property.
+    /// - Throws: An error if validation fails.
+    private static func processVariable(
+        _ varDecl: VariableDeclSyntax,
+        in context: some MacroExpansionContext
+    ) throws -> [DeclSyntax] {
+        // Ensure the variable has a valid binding
+        guard let binding = varDecl.bindings.first else {
+            context.diagnose(Diagnostic(node: varDecl, message: InjectableViewMacroError.missingBinding))
             return []
         }
-        
-        guard varDecl.bindings.count == 1,
-              let binding = varDecl.bindings.first,
-              let identifierPattern = binding.pattern.as(IdentifierPatternSyntax.self) else {
-            context.diagnose(Diagnostic(node: declaration, message: InjectableViewMacroError.notSingleVariable))
+
+        // Ensure the variable has a valid identifier
+        guard let identifier = binding.pattern.as(IdentifierPatternSyntax.self)?.identifier.text else {
+            context.diagnose(Diagnostic(node: varDecl, message: InjectableViewMacroError.invalidIdentifier))
             return []
         }
-        
-        let propertyName = identifierPattern.identifier.text
-        
-        // Validate that the variable has a type annotation.
-        guard binding.typeAnnotation != nil else {
-            context.diagnose(Diagnostic(node: declaration, message: InjectableViewMacroError.missingTypeAnnotation))
+
+        // Ensure the identifier ends with "Builder"
+        guard identifier.hasSuffix("Builder") else {
+            context.diagnose(Diagnostic(node: varDecl, message: InjectableViewMacroError.invalidSuffix))
             return []
         }
-        
-        // Derive expected builder method name by convention: <propertyName>Builder
-        let builderName = "\(propertyName)Builder"
-        
-        // Compose the override + builder call logic.
-        // The accessor returns some View:
-        // - If an override closure exists in _viewOverrides, call it and return its result (AnyView).
-        // - Otherwise, call the builder and wrap its result in AnyView.
-        let computedBody = """
-        get {
-            if let override = _viewOverrides["\(propertyName)"] {
-                return override()
+
+        // Extract the property name by removing the "Builder" suffix
+        let propertyName = String(identifier.dropLast("Builder".count))
+
+        // Generate the computed property
+        let computedProperty = try DeclSyntax(stringLiteral: """
+        var \(propertyName): some View {
+            if let override = _overridesMaintainer.override(for: "\(propertyName)") {
+                return override
             }
-            return AnyView(\(builderName)())
+            return AnyView(\(identifier))
         }
-        """
-        
-        let accessor = try AccessorDeclSyntax(stringLiteral: computedBody)
-        return [accessor]
+        """)
+
+        return [computedProperty]
+    }
+
+    /// Processes a function declaration to generate a computed property.
+    ///
+    /// - Parameters:
+    ///   - funcDecl: The function declaration syntax.
+    ///   - context: The macro expansion context.
+    /// - Returns: An array of `DeclSyntax` representing the generated computed property.
+    /// - Throws: An error if validation fails.
+    private static func processFunction(
+        _ funcDecl: FunctionDeclSyntax,
+        in context: some MacroExpansionContext
+    ) throws -> [DeclSyntax] {
+        // Extract the function name
+        let name = funcDecl.identifier.text
+
+        // Ensure the function name ends with "Builder"
+        guard name.hasSuffix("Builder") else {
+            context.diagnose(Diagnostic(node: funcDecl, message: InjectableViewMacroError.invalidSuffix))
+            return []
+        }
+
+        // Ensure the function has a body
+        guard funcDecl.body != nil else {
+            context.diagnose(Diagnostic(node: funcDecl, message: InjectableViewMacroError.missingFunctionBody))
+            return []
+        }
+
+        // Extract the property name by removing the "Builder" suffix
+        let propertyName = String(name.dropLast("Builder".count))
+
+        // Generate the computed property
+        let computedProperty = try DeclSyntax(stringLiteral: """
+        var \(propertyName): some View {
+            if let override = _overridesMaintainer.override(for: "\(propertyName)") {
+                return override
+            }
+            return AnyView(\(name)())
+        }
+        """)
+
+        return [computedProperty]
     }
 }
 
-/// Macro errors for developer feedback
+/// Diagnostic messages for `InjectableViewMacro` errors.
+///
+/// These errors are emitted during macro expansion to provide feedback to developers.
 enum InjectableViewMacroError: DiagnosticMessage {
-    case notVariableDeclaration
-    case notSingleVariable
-    case missingTypeAnnotation
+    case notVariableOrFunction
+    case invalidSuffix
+    case missingBinding
+    case invalidIdentifier
+    case missingFunctionBody
 
+    /// The error message to display to the developer.
     var message: String {
         switch self {
-        case .notVariableDeclaration:
-            return "@InjectableView must attach to a variable declaration."
-        case .notSingleVariable:
-            return "@InjectableView must be attached to a single variable declaration."
-        case .missingTypeAnnotation:
-            return "@InjectableView variable must have an explicit type annotation."
+        case .notVariableOrFunction:
+            return "@InjectableView can only be attached to a variable or function."
+        case .invalidSuffix:
+            return "The name must end with 'Builder' to use @InjectableView."
+        case .missingBinding:
+            return "The variable declaration must have a valid binding."
+        case .invalidIdentifier:
+            return "The variable declaration must have a valid identifier."
+        case .missingFunctionBody:
+            return "The function declaration must have a body."
         }
     }
 
+    /// The severity of the diagnostic message.
     var severity: DiagnosticSeverity { .error }
+
+    /// The unique identifier for the diagnostic message.
     var diagnosticID: MessageID {
         MessageID(domain: "InjectableViewMacro", id: "\(self)")
     }

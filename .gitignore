@@ -1,7 +1,7 @@
 # ==========================
 # Xcode & macOS
 # ==========================
-.DS_Store
+*.DS_Store
 *.swp
 *.lock
 *.xcuserstate

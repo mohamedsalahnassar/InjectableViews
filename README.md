@@ -1,5 +1,10 @@
 # InjectableViews
 
+[![Swift](https://img.shields.io/badge/Swift-5.9%2B-orange?logo=swift)](https://swift.org)
+[![Xcode](https://img.shields.io/badge/Xcode-15%2B-blue?logo=xcode)](https://developer.apple.com/xcode/)
+[![Platforms](https://img.shields.io/badge/platforms-iOS%2015%2B%20%7C%20macOS%2012%2B%20%7C%20tvOS%2015%2B%20%7C%20watchOS%208%2B-lightgrey?logo=apple)](https://developer.apple.com/documentation/swiftui)
+[![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+
 `InjectableViews` is a Swift package designed to simplify dependency injection and view customization in **SwiftUI** applications. It leverages Swift macros to reduce boilerplate code and enhance the flexibility of view hierarchies.
 
 ## Features
@@ -22,7 +27,7 @@ Add `InjectableViews` to your `Package.swift` file:
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/your-repo/InjectableViews.git", from: "2.0.1")
+    .package(url: "https://github.com/your-repo/InjectableViews.git", from: "1.0.0")
 ]
 ```
 

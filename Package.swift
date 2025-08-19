@@ -15,6 +15,11 @@ let package = Package(
             name: "InjectableViewsDemo",
             targets: ["InjectableViewsDemo"]
         ),
+        // Library exposing the Core Data entities used by the macOS sample app.
+        .library(
+            name: "ProjectPlannerApp",
+            targets: ["ProjectPlannerApp"]
+        ),
     ],
     dependencies: [
         .package(url: "https://github.com/apple/swift-syntax.git", from: "509.0.0"),
@@ -42,6 +47,12 @@ let package = Package(
         .executableTarget(
             name: "InjectableViewsDemo",
             dependencies: ["InjectableViews"]
+        ),
+
+        // Core Data entities used by the macOS sample app.
+        .target(
+            name: "ProjectPlannerApp",
+            dependencies: []
         ),
 
         .testTarget(

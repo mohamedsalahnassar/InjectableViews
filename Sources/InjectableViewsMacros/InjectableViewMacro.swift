@@ -38,10 +38,12 @@ import SwiftDiagnostics
 /// The macro generates the following computed property:
 /// ```swift
 /// var childView: some View {
-///     if let override = _overridesMaintainer.override(for: "childView") {
-///         return override
+///     get async {
+///         if let override = await _overridesMaintainer.override(for: "childView") {
+///             return override
+///         }
+///         return childViewBuilder()
 ///     }
-///     return childViewBuilder()
 /// }
 /// ```
 ///
@@ -112,10 +114,12 @@ public struct InjectableViewMacro: PeerMacro {
         // Generate the computed property
         let computedProperty = try DeclSyntax(stringLiteral: """
         var \(propertyName): some View {
-            if let override = _overridesMaintainer.override(for: "\(propertyName)") {
-                return override
+            get async {
+                if let override = await _overridesMaintainer.override(for: "\(propertyName)") {
+                    return override
+                }
+                return AnyView(\(identifier))
             }
-            return AnyView(\(identifier))
         }
         """)
 
@@ -154,10 +158,12 @@ public struct InjectableViewMacro: PeerMacro {
         // Generate the computed property
         let computedProperty = try DeclSyntax(stringLiteral: """
         var \(propertyName): some View {
-            if let override = _overridesMaintainer.override(for: "\(propertyName)") {
-                return override
+            get async {
+                if let override = await _overridesMaintainer.override(for: "\(propertyName)") {
+                    return override
+                }
+                return AnyView(\(name)())
             }
-            return AnyView(\(name)())
         }
         """)
 

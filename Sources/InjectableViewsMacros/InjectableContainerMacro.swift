@@ -114,8 +114,8 @@ public struct InjectableContainerMacro: MemberMacro {
 
         // Inject a function to update the overrides
         let updateFunction = try DeclSyntax(stringLiteral: """
-        public func overrideView<V: View>(for key: InjectableKeys, @ViewBuilder with viewBuilder: () -> V) -> Self {
-            _overridesMaintainer.updateOverride(for: key.rawValue, with: AnyView(viewBuilder()))
+        public func overrideView<V: View>(for key: InjectableKeys, @ViewBuilder with viewBuilder: () -> V) async -> Self {
+            await _overridesMaintainer.updateOverride(for: key.rawValue, with: AnyView(viewBuilder()))
             return self
         }
         """)

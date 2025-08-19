@@ -47,10 +47,12 @@ final class InjectableViewMacroTests: XCTestCase {
             """,
             expandedSource: """
             var childView: some View {
-                if let override = _overridesMaintainer.override(for: "childView") {
-                    return override
+                get async {
+                    if let override = await _overridesMaintainer.override(for: "childView") {
+                        return override
+                    }
+                    return AnyView(childViewBuilder)
                 }
-                return AnyView(childViewBuilder)
             }
             """,
             macros: ["InjectableView": InjectableViewMacro.self]
@@ -67,10 +69,12 @@ final class InjectableViewMacroTests: XCTestCase {
             """,
             expandedSource: """
             var childView: some View {
-                if let override = _overridesMaintainer.override(for: "childView") {
-                    return override
+                get async {
+                    if let override = await _overridesMaintainer.override(for: "childView") {
+                        return override
+                    }
+                    return AnyView(childViewBuilder())
                 }
-                return AnyView(childViewBuilder())
             }
             """,
             macros: ["InjectableView": InjectableViewMacro.self]

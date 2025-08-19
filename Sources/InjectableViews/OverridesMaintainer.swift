@@ -71,4 +71,26 @@ public class OverridesMaintainer {
     public func override(for key: String) -> AnyView? {
         overrides[key]
     }
+
+    /// Removes the override for a given key if it exists.
+    ///
+    /// - Parameter key: The key associated with the override to remove.
+    ///
+    /// ### Example:
+    /// ```swift
+    /// maintainer.removeOverride(for: "childView")
+    /// ```
+    public func removeOverride(for key: String) {
+        overrides.removeValue(forKey: key)
+    }
+
+    /// Resets all overrides, clearing the overrides dictionary.
+    ///
+    /// ### Example:
+    /// ```swift
+    /// maintainer.resetOverrides()
+    /// ```
+    public func resetOverrides() {
+        overrides.removeAll()
+    }
 }

@@ -62,14 +62,25 @@ public struct InjectableViewMacro: PeerMacro {
         providingPeersOf declaration: some DeclSyntaxProtocol,
         in context: some MacroExpansionContext
     ) throws -> [DeclSyntax] {
+        // Extract the custom property name if provided as an argument
+        let customName: String? = {
+            guard let arguments = node.arguments,
+                  let first = arguments.first,
+                  let stringLiteral = first.expression.as(StringLiteralExprSyntax.self),
+                  let segment = stringLiteral.segments.first?.as(StringSegmentSyntax.self) else {
+                return nil
+            }
+            return segment.content.text
+        }()
+
         // Handle variable declarations
         if let varDecl = declaration.as(VariableDeclSyntax.self) {
-            return try processVariable(varDecl, in: context)
+            return try processVariable(varDecl, customName: customName, in: context)
         }
 
         // Handle function declarations
         if let funcDecl = declaration.as(FunctionDeclSyntax.self) {
-            return try processFunction(funcDecl, in: context)
+            return try processFunction(funcDecl, customName: customName, in: context)
         }
 
         // Emit an error for unsupported declaration types
@@ -86,6 +97,7 @@ public struct InjectableViewMacro: PeerMacro {
     /// - Throws: An error if validation fails.
     private static func processVariable(
         _ varDecl: VariableDeclSyntax,
+        customName: String?,
         in context: some MacroExpansionContext
     ) throws -> [DeclSyntax] {
         // Ensure the variable has a valid binding
@@ -106,8 +118,8 @@ public struct InjectableViewMacro: PeerMacro {
             return []
         }
 
-        // Extract the property name by removing the "Builder" suffix
-        let propertyName = String(identifier.dropLast("Builder".count))
+        // Determine the property name either from the argument or by removing the suffix
+        let propertyName = customName ?? String(identifier.dropLast("Builder".count))
 
         // Generate the computed property
         let computedProperty = try DeclSyntax(stringLiteral: """
@@ -131,6 +143,7 @@ public struct InjectableViewMacro: PeerMacro {
     /// - Throws: An error if validation fails.
     private static func processFunction(
         _ funcDecl: FunctionDeclSyntax,
+        customName: String?,
         in context: some MacroExpansionContext
     ) throws -> [DeclSyntax] {
         // Extract the function name
@@ -148,8 +161,8 @@ public struct InjectableViewMacro: PeerMacro {
             return []
         }
 
-        // Extract the property name by removing the "Builder" suffix
-        let propertyName = String(name.dropLast("Builder".count))
+        // Determine the property name either from the argument or by removing the suffix
+        let propertyName = customName ?? String(name.dropLast("Builder".count))
 
         // Generate the computed property
         let computedProperty = try DeclSyntax(stringLiteral: """

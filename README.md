@@ -41,7 +41,7 @@ import InjectableViews
 
 ### 1. Mark a View as Injectable
 
-Use the `@InjectableView` macro to mark a property or function as an injectable view. The property or function name must end with "Builder" to be processed by the macro.
+Use the `@InjectableView` macro to mark a property or function as an injectable view. The property or function name must end with "Builder" to be processed by the macro. Optionally, you can pass a string argument to specify a custom computed-property name.
 
 #### Example: Attaching to a Computed Property
 
@@ -80,6 +80,26 @@ struct ParentView: View {
 ```
 
 The macro generates a computed property that checks for runtime overrides using the `_overridesMaintainer` object. If no override exists, it falls back to the default builder method or property.
+
+#### Example: Custom Property Name
+
+You can optionally supply a custom property name to the `@InjectableView` macro. When an argument is provided, that name is used for the generated computed property instead of inferring it from the `Builder` suffix.
+
+```swift
+@InjectableContainer
+struct ParentView: View {
+    @InjectableView("customChildView")
+    func childViewBuilder() -> some View {
+        Text("Default Child View")
+    }
+
+    var body: some View {
+        VStack {
+            customChildView
+        }
+    }
+}
+```
 
 ### 2. Define a Container View
 

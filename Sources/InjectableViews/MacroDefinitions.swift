@@ -45,8 +45,8 @@ import SwiftUI
 /// ```swift
 /// private var _overridesMaintainer = OverridesMaintainer()
 ///
-/// public func overrideView<V: View>(for key: InjectableKeys, @ViewBuilder with viewBuilder: () -> V) -> Self {
-///     _overridesMaintainer.updateOverride(for: key.rawValue, with: AnyView(viewBuilder()))
+/// public func overrideView<V: View>(for key: InjectableKeys, @ViewBuilder with viewBuilder: () -> V) async -> Self {
+///     await _overridesMaintainer.updateOverride(for: key.rawValue, with: AnyView(viewBuilder()))
 ///     return self
 /// }
 ///
@@ -132,10 +132,12 @@ public macro InjectableContainer() = #externalMacro(
 /// The macro generates the following computed property for the above examples:
 /// ```swift
 /// var childView: some View {
-///     if let override = _overridesMaintainer.override(for: "childView") {
-///         return override
+///     get async {
+///         if let override = await _overridesMaintainer.override(for: "childView") {
+///             return override
+///         }
+///         return AnyView(childViewBuilder())
 ///     }
-///     return AnyView(childViewBuilder())
 /// }
 /// ```
 ///

@@ -29,8 +29,8 @@ final class InjectableContainerMacroTests: XCTestCase {
                     case childView = "childView"
                 }
 
-                public func overrideView<V: View>(for key: InjectableKeys, @ViewBuilder with viewBuilder: () -> V) -> Self {
-                    _overridesMaintainer.updateOverride(for: key.rawValue, with: AnyView(viewBuilder()))
+                public func overrideView<V: View>(for key: InjectableKeys, @ViewBuilder with viewBuilder: () -> V) async -> Self {
+                    await _overridesMaintainer.updateOverride(for: key.rawValue, with: AnyView(viewBuilder()))
                     return self
                 }
             """,

@@ -117,8 +117,8 @@ The macro generates the following members:
 ```swift
 private var _overridesMaintainer = OverridesMaintainer()
 
-public func overrideView<V: View>(for key: InjectableKeys, @ViewBuilder with viewBuilder: () -> V) -> Self {
-    _overridesMaintainer.updateOverride(for: key.rawValue, with: AnyView(viewBuilder()))
+public func overrideView<V: View>(for key: InjectableKeys, @ViewBuilder with viewBuilder: () -> V) async -> Self {
+    await _overridesMaintainer.updateOverride(for: key.rawValue, with: AnyView(viewBuilder()))
     return self
 }
 

@@ -9,7 +9,7 @@ import SwiftUI
 
 /// A shared manager for handling view overrides in the InjectableViews system.
 ///
-/// The `OverridesMaintainer` class is responsible for managing runtime overrides of views
+/// The `OverridesMaintainer` actor is responsible for managing runtime overrides of views
 /// in containers marked with `@InjectableContainer`. It stores overrides in a dictionary
 /// and provides methods to update and retrieve overrides dynamically.
 ///
@@ -35,10 +35,10 @@ import SwiftUI
 /// - Note: This class is designed to be used internally by the `InjectableViews` system.
 /// - Author: Mohamed Nassar
 /// - Since: 28/07/2025
-public class OverridesMaintainer {
+public actor OverridesMaintainer {
     /// A dictionary storing overrides for injectable views.
     /// The keys are `String` identifiers, and the values are `AnyView` instances.
-    private(set) var overrides: [String: AnyView] = [:]
+    private var overrides: [String: AnyView] = [:]
 
     /// Initializes a new instance of `OverridesMaintainer`.
     public init() {}
@@ -51,7 +51,7 @@ public class OverridesMaintainer {
     ///
     /// ### Example:
     /// ```swift
-    /// maintainer.updateOverride(for: "childView", with: AnyView(Text("Overridden View")))
+    /// await maintainer.updateOverride(for: "childView", with: AnyView(Text("Overridden View")))
     /// ```
     public func updateOverride(for key: String, with view: AnyView) {
         overrides[key] = view
@@ -64,7 +64,7 @@ public class OverridesMaintainer {
     ///
     /// ### Example:
     /// ```swift
-    /// if let override = maintainer.override(for: "childView") {
+    /// if let override = await maintainer.override(for: "childView") {
     ///     // Use the overridden view
     /// }
     /// ```

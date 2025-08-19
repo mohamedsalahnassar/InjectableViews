@@ -77,6 +77,46 @@ final class InjectableViewMacroTests: XCTestCase {
         )
     }
 
+    func testInjectableViewVariableWithCustomName() {
+        assertMacroExpansion(
+            """
+            @InjectableView("customChildView")
+            var childViewBuilder: some View {
+                Text("Child View")
+            }
+            """,
+            expandedSource: """
+            var customChildView: some View {
+                if let override = _overridesMaintainer.override(for: "customChildView") {
+                    return override
+                }
+                return AnyView(childViewBuilder)
+            }
+            """,
+            macros: ["InjectableView": InjectableViewMacro.self]
+        )
+    }
+
+    func testInjectableViewFunctionWithCustomName() {
+        assertMacroExpansion(
+            """
+            @InjectableView("customChildView")
+            func childViewBuilder() -> some View {
+                Text("Child View")
+            }
+            """,
+            expandedSource: """
+            var customChildView: some View {
+                if let override = _overridesMaintainer.override(for: "customChildView") {
+                    return override
+                }
+                return AnyView(childViewBuilder())
+            }
+            """,
+            macros: ["InjectableView": InjectableViewMacro.self]
+        )
+    }
+
     func testInvalidIdentifier() {
         assertMacroExpansion(
             """

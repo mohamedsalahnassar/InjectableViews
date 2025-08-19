@@ -112,10 +112,11 @@ public struct InjectableViewMacro: PeerMacro {
         // Generate the computed property
         let computedProperty = try DeclSyntax(stringLiteral: """
         var \(propertyName): some View {
-            if let override = _overridesMaintainer.override(for: "\(propertyName)") {
+            let defaultView = \(identifier)
+            if let override = _overridesMaintainer.override(for: "\(propertyName)", as: type(of: defaultView)) {
                 return override
             }
-            return AnyView(\(identifier))
+            return defaultView
         }
         """)
 
@@ -154,10 +155,11 @@ public struct InjectableViewMacro: PeerMacro {
         // Generate the computed property
         let computedProperty = try DeclSyntax(stringLiteral: """
         var \(propertyName): some View {
-            if let override = _overridesMaintainer.override(for: "\(propertyName)") {
+            let defaultView = \(name)()
+            if let override = _overridesMaintainer.override(for: "\(propertyName)", as: type(of: defaultView)) {
                 return override
             }
-            return AnyView(\(name)())
+            return defaultView
         }
         """)
 

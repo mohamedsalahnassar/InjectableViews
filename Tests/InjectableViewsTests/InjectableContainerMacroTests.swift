@@ -30,7 +30,7 @@ final class InjectableContainerMacroTests: XCTestCase {
                 }
 
                 public func overrideView<V: View>(for key: InjectableKeys, @ViewBuilder with viewBuilder: () -> V) -> Self {
-                    _overridesMaintainer.updateOverride(for: key.rawValue, with: AnyView(viewBuilder()))
+                    _overridesMaintainer.updateOverride(for: key.rawValue, with: viewBuilder())
                     return self
                 }
             """,

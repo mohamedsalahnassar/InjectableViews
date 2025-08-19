@@ -106,7 +106,7 @@ public struct InjectableContainerMacro: MemberMacro {
     ) throws -> [DeclSyntax] {
         // Inject a property for the overrides maintainer
         let overridesMaintainerProperty = try DeclSyntax(stringLiteral: """
-        private let _overridesMaintainer = OverridesMaintainer()
+        private var _overridesMaintainer = OverridesMaintainer()
         """)
 
         // Generate the InjectableKeys enum
@@ -115,7 +115,7 @@ public struct InjectableContainerMacro: MemberMacro {
         // Inject a function to update the overrides
         let updateFunction = try DeclSyntax(stringLiteral: """
         public func overrideView<V: View>(for key: InjectableKeys, @ViewBuilder with viewBuilder: () -> V) -> Self {
-            _overridesMaintainer.updateOverride(for: key.rawValue, with: AnyView(viewBuilder()))
+            _overridesMaintainer.updateOverride(for: key.rawValue, with: viewBuilder())
             return self
         }
         """)

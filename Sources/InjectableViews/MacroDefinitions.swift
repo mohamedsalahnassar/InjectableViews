@@ -13,6 +13,8 @@ import SwiftUI
 /// The macro injects the following members into the annotated type:
 /// - A private `_overridesMaintainer` property to manage runtime overrides.
 /// - A `overrideView(for:with:)` function to allow runtime view overrides.
+/// - A `removeOverride(for:)` function to remove specific overrides.
+/// - A `resetOverrides()` function to clear all overrides.
 /// - An `InjectableKeys` enum containing all injectable properties or functions for type-safe key management.
 ///
 /// ### Example Usage:
@@ -43,10 +45,20 @@ import SwiftUI
 /// #### Generated Members:
 /// The macro generates the following members:
 /// ```swift
-/// private var _overridesMaintainer = OverridesMaintainer()
+/// private let _overridesMaintainer = OverridesMaintainer()
 ///
 /// public func overrideView<V: View>(for key: InjectableKeys, @ViewBuilder with viewBuilder: () -> V) -> Self {
-///     _overridesMaintainer.updateOverride(for: key.rawValue, with: AnyView(viewBuilder()))
+///     _overridesMaintainer.overrideView(AnyView(viewBuilder()), for: key.rawValue)
+///     return self
+/// }
+///
+/// public func removeOverride(for key: InjectableKeys) -> Self {
+///     _overridesMaintainer.removeOverride(for: key.rawValue)
+///     return self
+/// }
+///
+/// public func resetOverrides() -> Self {
+///     _overridesMaintainer.resetAll()
 ///     return self
 /// }
 ///
@@ -78,7 +90,7 @@ import SwiftUI
 /// - Note: This macro must be applied to a `struct` or `class` that conforms to `View`.
 /// - Author: Mohamed Nassar
 /// - Since: 26/07/2025
-@attached(member, names: named(_overridesMaintainer), named(overrideView(for:with:)), named(InjectableKeys))
+@attached(member, names: named(_overridesMaintainer), named(overrideView(for:with:)), named(removeOverride(for:)), named(resetOverrides), named(InjectableKeys))
 public macro InjectableContainer() = #externalMacro(
     module: "InjectableViewsMacros",
     type: "InjectableContainerMacro"

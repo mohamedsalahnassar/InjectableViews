@@ -112,15 +112,29 @@ public struct InjectableContainerMacro: MemberMacro {
         // Generate the InjectableKeys enum
         let injectableKeysEnum = try generateInjectableKeysEnum(from: declaration, in: context)
 
-        // Inject a function to update the overrides
-        let updateFunction = try DeclSyntax(stringLiteral: """
+        // Inject functions to manage overrides
+        let overrideFunction = try DeclSyntax(stringLiteral: """
         public func overrideView<V: View>(for key: InjectableKeys, @ViewBuilder with viewBuilder: () -> V) -> Self {
-            _overridesMaintainer.updateOverride(for: key.rawValue, with: AnyView(viewBuilder()))
+            _overridesMaintainer.overrideView(AnyView(viewBuilder()), for: key.rawValue)
             return self
         }
         """)
 
-        return [overridesMaintainerProperty, injectableKeysEnum, updateFunction]
+        let removeFunction = try DeclSyntax(stringLiteral: """
+        public func removeOverride(for key: InjectableKeys) -> Self {
+            _overridesMaintainer.removeOverride(for: key.rawValue)
+            return self
+        }
+        """)
+
+        let resetFunction = try DeclSyntax(stringLiteral: """
+        public func resetOverrides() -> Self {
+            _overridesMaintainer.resetAll()
+            return self
+        }
+        """)
+
+        return [overridesMaintainerProperty, injectableKeysEnum, overrideFunction, removeFunction, resetFunction]
     }
 
     /// Generates the `InjectableKeys` enum based on `@InjectableView` annotated members.

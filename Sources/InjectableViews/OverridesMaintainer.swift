@@ -21,7 +21,7 @@ import SwiftUI
 /// ### Example Usage:
 /// ```swift
 /// let maintainer = OverridesMaintainer()
-/// maintainer.updateOverride(for: "childView", with: AnyView(Text("Overridden View")))
+/// maintainer.overrideView(AnyView(Text("Overridden View")), for: "childView")
 ///
 /// if let override = maintainer.override(for: "childView") {
 ///     // Use the overridden view
@@ -43,18 +43,30 @@ public class OverridesMaintainer {
     /// Initializes a new instance of `OverridesMaintainer`.
     public init() {}
 
-    /// Updates the override for a specific key.
+    /// Overrides the view for a specific key.
     ///
     /// - Parameters:
-    ///   - key: The key associated with the override.
     ///   - view: The view to override with, wrapped in `AnyView`.
+    ///   - key: The key associated with the override.
     ///
     /// ### Example:
     /// ```swift
-    /// maintainer.updateOverride(for: "childView", with: AnyView(Text("Overridden View")))
+    /// maintainer.overrideView(AnyView(Text("Overridden View")), for: "childView")
     /// ```
-    public func updateOverride(for key: String, with view: AnyView) {
+    public func overrideView(_ view: AnyView, for key: String) {
         overrides[key] = view
+    }
+
+    /// Removes the override for a specific key if it exists.
+    ///
+    /// - Parameter key: The key whose override should be removed.
+    public func removeOverride(for key: String) {
+        overrides.removeValue(forKey: key)
+    }
+
+    /// Resets all overrides.
+    public func resetAll() {
+        overrides.removeAll()
     }
 
     /// Retrieves the override for a specific key, if it exists.

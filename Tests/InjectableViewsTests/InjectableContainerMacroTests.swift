@@ -23,14 +23,24 @@ final class InjectableContainerMacroTests: XCTestCase {
             }
             """,
             expandedSource: """
-                private var _overridesMaintainer = OverridesMaintainer()
+                private let _overridesMaintainer = OverridesMaintainer()
 
                 public enum InjectableKeys: String {
                     case childView = "childView"
                 }
 
                 public func overrideView<V: View>(for key: InjectableKeys, @ViewBuilder with viewBuilder: () -> V) -> Self {
-                    _overridesMaintainer.updateOverride(for: key.rawValue, with: AnyView(viewBuilder()))
+                    _overridesMaintainer.overrideView(AnyView(viewBuilder()), for: key.rawValue)
+                    return self
+                }
+
+                public func removeOverride(for key: InjectableKeys) -> Self {
+                    _overridesMaintainer.removeOverride(for: key.rawValue)
+                    return self
+                }
+
+                public func resetOverrides() -> Self {
+                    _overridesMaintainer.resetAll()
                     return self
                 }
             """,

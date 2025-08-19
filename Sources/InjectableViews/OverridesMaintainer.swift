@@ -21,9 +21,9 @@ import SwiftUI
 /// ### Example Usage:
 /// ```swift
 /// let maintainer = OverridesMaintainer()
-/// maintainer.updateOverride(for: "childView", with: AnyView(Text("Overridden View")))
+/// maintainer.updateOverride(for: "childView", with: Text("Overridden View"))
 ///
-/// if let override = maintainer.override(for: "childView") {
+/// if let override: Text = maintainer.override(for: "childView", as: Text.self) {
 ///     // Use the overridden view
 ///     print("Override found: \(override)")
 /// } else {
@@ -37,8 +37,8 @@ import SwiftUI
 /// - Since: 28/07/2025
 public class OverridesMaintainer {
     /// A dictionary storing overrides for injectable views.
-    /// The keys are `String` identifiers, and the values are `AnyView` instances.
-    private(set) var overrides: [String: AnyView] = [:]
+    /// The keys are `String` identifiers, and the values are views of any type.
+    private var overrides: [String: any View] = [:]
 
     /// Initializes a new instance of `OverridesMaintainer`.
     public init() {}
@@ -47,29 +47,31 @@ public class OverridesMaintainer {
     ///
     /// - Parameters:
     ///   - key: The key associated with the override.
-    ///   - view: The view to override with, wrapped in `AnyView`.
+    ///   - view: The view to override with.
     ///
     /// ### Example:
     /// ```swift
-    /// maintainer.updateOverride(for: "childView", with: AnyView(Text("Overridden View")))
+    /// maintainer.updateOverride(for: "childView", with: Text("Overridden View"))
     /// ```
-    public func updateOverride(for key: String, with view: AnyView) {
+    public func updateOverride<Content: View>(for key: String, with view: Content) {
         overrides[key] = view
     }
 
     /// Retrieves the override for a specific key, if it exists.
     ///
-    /// - Parameter key: The key associated with the override.
-    /// - Returns: The overridden view wrapped in `AnyView`, or `nil` if no override exists.
+    /// - Parameters:
+    ///   - key: The key associated with the override.
+    ///   - type: The expected view type.
+    /// - Returns: The overridden view of the specified type, or `nil` if no override exists.
     ///
     /// ### Example:
     /// ```swift
-    /// if let override = maintainer.override(for: "childView") {
+    /// if let override: Text = maintainer.override(for: "childView", as: Text.self) {
     ///     // Use the overridden view
     /// }
     /// ```
-    public func override(for key: String) -> AnyView? {
-        overrides[key]
+    public func override<Content: View>(for key: String, as type: Content.Type) -> Content? {
+        overrides[key] as? Content
     }
 
     /// Removes the override for a given key if it exists.
